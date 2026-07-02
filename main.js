@@ -4,6 +4,7 @@ const path = require('path');
 
 const PORT = Number(process.env.PORT) || 4000;
 const LOG_FILE = path.join(__dirname, 'requests.log');
+const PHOTO_FILE = path.join(__dirname, 'static', 'images-1.png');
 
 function readLogs() {
   if (!fs.existsSync(LOG_FILE)) return [];
@@ -33,6 +34,19 @@ function sendJson(res, statusCode, data) {
 function sendText(res, statusCode, text) {
   res.writeHead(statusCode, { 'Content-Type': 'text/plain; charset=utf-8' });
   res.end(text);
+}
+
+function sendPhoto(res) {
+  if (!fs.existsSync(PHOTO_FILE)) {
+    sendText(res, 404, 'Photo not found');
+    return;
+  }
+
+  res.writeHead(200, {
+    'Content-Type': 'image/png',
+    'Content-Disposition': 'attachment; filename="images-1.png"',
+  });
+  fs.createReadStream(PHOTO_FILE).pipe(res);
 }
 
 function escapeHtml(value) {
@@ -108,10 +122,11 @@ const server = http.createServer((req, res) => {
 
   req.on('end', () => {
     const body = Buffer.concat(chunks).toString();
+    const pathname = new URL(req.url, `http://${req.headers.host || 'localhost'}`).pathname;
     const log = {
       time: new Date().toISOString(),
       method: req.method,
-      url: req.url,
+      url: pathname,
       headers: req.headers,
       rawHeaders: req.rawHeaders,
       body,
@@ -119,18 +134,24 @@ const server = http.createServer((req, res) => {
 
     saveLog(log);
 
-    if (req.url === '/log') {
+    if (pathname === '/photo') {
+      sendPhoto(res);
+      return;
+    }
+
+    if (pathname === '/log') {
       sendText(res, 200, readRawLogs());
       return;
     }
 
-    if (req.url === '/logs') {
+    if (pathname === '/logs') {
       sendHtml(res, 200, renderLogsTable(readLogs()));
       return;
     }
 
     sendJson(res, 200, {
       message: '요청을 로그로 저장했습니다.',
+      photoUrl: '/photo',
       rawLogUrl: '/log',
       logsUrl: '/logs',
     });
@@ -139,6 +160,7 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, () => {
   console.log(`Server running: http://localhost:${PORT}`);
+  console.log(`Photo download: http://localhost:${PORT}/photo`);
   console.log(`Raw logs: http://localhost:${PORT}/log`);
   console.log(`Logs: http://localhost:${PORT}/logs`);
 });

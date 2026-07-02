@@ -28,6 +28,12 @@ http://localhost:4000
 curl -X POST http://localhost:4000/test -H "Content-Type: text/plain" --data "hello"
 ```
 
+사진 다운로드:
+
+```text
+http://localhost:4000/photo
+```
+
 저장된 로그 확인:
 
 ```text
@@ -49,6 +55,7 @@ http://localhost:4000/logs
 ```text
 https://배포주소/log
 https://배포주소/logs
+https://배포주소/photo
 ```
 
 Vercel은 서버리스 환경이라 `requests.log`를 영구 저장할 수 없습니다. 이 프로젝트는 간단한 테스트용으로 `/tmp`에 임시 저장하며, 재배포되거나 서버리스 인스턴스가 바뀌면 로그가 사라질 수 있습니다.

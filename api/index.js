@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 const LOG_FILE = path.join('/tmp', 'requests.log');
+const PHOTO_FILE = path.join(process.cwd(), 'static', 'images-1.png');
 
 function getMemoryLogs() {
   globalThis.requestLogs = globalThis.requestLogs || [];
@@ -28,6 +29,17 @@ function readLogs() {
 function saveLog(log) {
   getMemoryLogs().push(log);
   fs.appendFileSync(LOG_FILE, `${JSON.stringify(log)}\n`);
+}
+
+function sendPhoto(res) {
+  if (!fs.existsSync(PHOTO_FILE)) {
+    res.status(404).send('Photo not found');
+    return;
+  }
+
+  res.setHeader('Content-Type', 'image/png');
+  res.setHeader('Content-Disposition', 'attachment; filename="images-1.png"');
+  res.status(200).send(fs.readFileSync(PHOTO_FILE));
 }
 
 function readBody(req) {
@@ -136,6 +148,11 @@ module.exports = async function handler(req, res) {
 
   saveLog(log);
 
+  if (pathname === '/photo') {
+    sendPhoto(res);
+    return;
+  }
+
   if (pathname === '/log') {
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     res.status(200).send(readRawLogs());
@@ -150,6 +167,7 @@ module.exports = async function handler(req, res) {
 
   res.status(200).json({
     message: '요청을 로그로 저장했습니다.',
+    photoUrl: '/photo',
     rawLogUrl: '/log',
     logsUrl: '/logs',
   });
